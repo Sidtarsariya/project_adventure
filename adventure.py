@@ -3,9 +3,16 @@ import json
 
 # Function to load map data from a JSON file
 def load_map(filename):
-    with open(filename, 'r') as file:
-        map_data = json.load(file)
-    return map_data
+    try:
+        with open(filename, 'r') as file:
+            map_data = json.load(file)
+            return map_data
+    except FileNotFoundError:
+        sys.stderr.write("Map file '{}' not found.\n".format(filename))
+        sys.exit(1)
+    except json.JSONDecodeError:
+        sys.stderr.write("Invalid JSON format in map file '{}'.\n".format(filename))
+        sys.exit(1)
 
 # Function to check if a map is valid
 def is_valid_map(map_data):
@@ -108,20 +115,9 @@ def execute_command(parsed_command, game_state, map_data):
         else:
             print("Sorry, I didn't understand that.")
 
-# Function to parse player input with support for abbreviations
+# Function to parse player input
 def parse_input(player_input):
-    abbreviated_verbs = {
-        "g": "go",
-        "l": "look",
-        "i": "inventory",
-        "q": "quit"
-    }
-
-    parts = player_input.strip().lower().split()
-    if parts[0] in abbreviated_verbs:
-        parts[0] = abbreviated_verbs[parts[0]]
-    return parts
-
+    return player_input.strip().lower().split()
 
 # Main game loop
 def game_loop(map_data):
