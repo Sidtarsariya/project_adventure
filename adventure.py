@@ -1,139 +1,152 @@
 import sys
 import json
 
-# Parse Command-Line Arguments
-def parse_arguments():
-    if len(sys.argv) != 2:
-        print("Usage: python3 adventure.py [map filename]")
-        sys.exit(1)
-    return sys.argv[1]
-
-# Load and Validate the Map
+# Function to load map data from a JSON file
 def load_map(filename):
-    try:
-        with open(filename, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        print(f"Error: Map file '{filename}' not found.")
-        sys.exit(1)
-    except json.JSONDecodeError:
-        print(f"Error: Invalid JSON format in map file '{filename}'.")
-        sys.exit(1)
+    with open(filename, 'r') as file:
+        map_data = json.load(file)
+    return map_data
 
-def validate_map(map_data):
+# Function to check if a map is valid
+def is_valid_map(map_data):
     if "start" not in map_data or "rooms" not in map_data:
-        print("Error: Map file must contain 'start' and 'rooms' keys.")
-        sys.exit(1)
-    # Additional validation logic goes here
+        return False
+    room_names = set()
+    for room in map_data["rooms"]:
+        if "name" not in room or "desc" not in room or "exits" not in room:
+            return False
+        if room["name"] in room_names:
+            return False
+        room_names.add(room["name"])
+        for exit_direction, exit_room in room["exits"].items():
+            if exit_direction not in ["north", "south", "east", "west"]:
+                return False
+            if exit_room not in room_names:
+                return False
+    return True
 
-# Game Engine Functions
-def read_input():
-    return input("> ")
-
-def parse_command(command):
-    return command.strip().lower().split(maxsplit=1)
-
-def execute_command(command, game_state, map_data):
-    verb = command[0]
-    if verb == "go":
-        # Execute the 'go' verb
-        go(command[1], game_state, map_data)
-    elif verb == "look":
-        # Execute the 'look' verb
-        look(game_state, map_data)
-    elif verb == "get":
-        # Execute the 'get' verb
-        get(command[1], game_state, map_data)
-    elif verb == "inventory":
-        # Execute the 'inventory' verb
-        inventory(game_state)
-    elif verb == "quit":
-        # Execute the 'quit' verb
-        quit_game()
-    elif verb == "help":
-        # Execute the 'help' verb
-        help_text()
-    else:
-        print("Error: Unknown command.")
-
+# Function to get information about a room
 def get_room_info(room_id, map_data):
     for room in map_data["rooms"]:
         if room["name"] == room_id:
             return room
+    return None
 
+# Function to print information about a room
 def print_room_info(room_info):
-    print(f"> {room_info['name']}\n")
-    print(room_info['desc'])
-    if "exits" in room_info:
-        print("\nExits:", ", ".join(room_info['exits'].keys()))
+    print("> " + room_info["name"])
+    print(room_info["desc"])
     if "items" in room_info:
-        print("\nItems:", ", ".join(room_info['items']))
-    print("\nWhat would you like to do?")
+        print("Items:", ", ".join(room_info["items"]))
+    print("Exits:", ", ".join(room_info["exits"]))
+    print("What would you like to do?")
 
+# Function to handle the "go" verb
 def go(direction, game_state, map_data):
     current_room = game_state["current_room"]
-    if direction in map_data["rooms"][current_room]["exits"]:
-        game_state["current_room"] = map_data["rooms"][current_room]["exits"][direction]
+    room_info = get_room_info(current_room, map_data)
+    if "exits" in room_info and direction in room_info["exits"]:
+        game_state["current_room"] = room_info["exits"][direction]
         room_info = get_room_info(game_state["current_room"], map_data)
         print_room_info(room_info)
     else:
         print("There's no way to go", direction + ".")
 
+# Function to handle the "look" verb
 def look(game_state, map_data):
     current_room = game_state["current_room"]
     room_info = get_room_info(current_room, map_data)
     print_room_info(room_info)
 
-def get(item_name, game_state, map_data):
+# Function to handle the "get" verb
+def get_item(item, game_state, map_data):
     current_room = game_state["current_room"]
     room_info = get_room_info(current_room, map_data)
-    if "items" in room_info:
-        if item_name in room_info["items"]:
-            room_info["items"].remove(item_name)
-            game_state["inventory"].append(item_name)
-            print(f"You pick up the {item_name}.")
-        else:
-            print(f"There's no {item_name} here.")
+    if "items" in room_info and item in room_info["items"]:
+        game_state["inventory"].append(item)
+        room_info["items"].remove(item)
+        print("You pick up the", item + ".")
     else:
-        print("There are no items here.")
+        print("There's no", item, "anywhere.")
 
+# Function to handle the "inventory" verb
 def inventory(game_state):
-    if game_state["inventory"]:
+    if not game_state["inventory"]:
+        print("You're not carrying anything.")
+    else:
         print("Inventory:")
         for item in game_state["inventory"]:
-            print(f"  {item}")
-    else:
-        print("You're not carrying anything.")
+            print(" ", item)
 
+# Function to handle the "quit" verb
 def quit_game():
     print("Goodbye!")
     sys.exit(0)
 
-def help_text():
-    print("You can run the following commands:")
-    print("  go [direction]")
-    print("  get [item]")
-    print("  look")
-    print("  inventory")
-    print("  quit")
-    print("  help")
+# Function to execute a parsed command
+def execute_command(parsed_command, game_state, map_data):
+    if len(parsed_command) == 0:
+        print("Sorry, I didn't understand that.")
+    else:
+        verb = parsed_command[0]
+        if verb == "go":
+            if len(parsed_command) == 1:
+                print("Sorry, you need to 'go' somewhere.")
+            else:
+                go(parsed_command[1], game_state, map_data)
+        elif verb == "look":
+            look(game_state, map_data)
+        elif verb == "get":
+            if len(parsed_command) == 1:
+                print("Sorry, you need to 'get' something.")
+            else:
+                get_item(parsed_command[1], game_state, map_data)
+        elif verb == "inventory":
+            inventory(game_state)
+        elif verb == "quit":
+            quit_game()
+        else:
+            print("Sorry, I didn't understand that.")
 
-# Main Game Loop
+# Function to parse player input with support for abbreviations
+def parse_input(player_input):
+    abbreviated_verbs = {
+        "g": "go",
+        "l": "look",
+        "i": "inventory",
+        "q": "quit"
+    }
+
+    parts = player_input.strip().lower().split()
+    if parts[0] in abbreviated_verbs:
+        parts[0] = abbreviated_verbs[parts[0]]
+    return parts
+
+
+# Main game loop
 def game_loop(map_data):
-    current_room = map_data["start"]
+    if not is_valid_map(map_data):
+        sys.stderr.write("Invalid map!\n")
+        sys.exit(1)
+
     game_state = {
-        "current_room": current_room,
+        "current_room": map_data["start"],
         "inventory": []
     }
+
+    room_info = get_room_info(game_state["current_room"], map_data)
+    print_room_info(room_info)
+
     while True:
-        room_info = get_room_info(current_room, map_data)
-        print_room_info(room_info)
-        command = read_input()
-        parsed_command = parse_command(command)
+        player_input = input().strip()
+        parsed_command = parse_input(player_input)
         execute_command(parsed_command, game_state, map_data)
 
 if __name__ == "__main__":
-    map_filename = parse_arguments()
+    if len(sys.argv) != 2:
+        sys.stderr.write("Usage: python3 adventure.py [map filename]\n")
+        sys.exit(1)
+
+    map_filename = sys.argv[1]
     map_data = load_map(map_filename)
-    validate_map(map_data)
     game_loop(map_data)
