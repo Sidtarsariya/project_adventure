@@ -79,16 +79,21 @@ class GameEngine:
         if direction:
             if direction in self.current_room['exits']:
                 next_room_id = self.current_room['exits'][direction]
-                next_room = self.rooms[next_room_id]
-                if 'locked' in next_room and next_room['locked']:
-                    if 'unlock_item' in next_room and next_room['unlock_item'] in self.inventory:
-                        print(f"You use {next_room['unlock_item']} to unlock the door.")
-                        next_room['locked'] = False
+                if next_room_id in self.rooms:
+                    next_room = self.rooms[next_room_id]
+                    if 'locked' in next_room and next_room['locked']:
+                        if 'unlock_item' in next_room and next_room['unlock_item'] in self.inventory:
+                            print(f"You use {next_room['unlock_item']} to unlock the door.")
+                            next_room['locked'] = False
+                            self.current_room = next_room
+                            self.print_room()
+                        else:
+                            print("The door is locked.")
                     else:
-                        print("The door is locked.")
+                        self.current_room = next_room
+                        self.print_room()
                 else:
-                    self.current_room = next_room
-                    self.print_room()
+                    print(f"Error: Invalid exit room '{next_room_id}' in room '{self.current_room['name']}'", file=sys.stderr)
             else:
                 print(f"There's no way to go {direction}.")
         else:
