@@ -16,11 +16,12 @@ def load_map(filename):
 
 # Function to check if a map is valid
 def is_valid_map(map_data):
-    if "start" not in map_data or "rooms" not in map_data:
+    if not all(key in map_data for key in ["start", "rooms"]):
         return False
+
     room_names = set()
     for room in map_data["rooms"]:
-        if "name" not in room or "desc" not in room or "exits" not in room:
+        if not all(key in room for key in ["name", "desc", "exits"]):
             return False
         if room["name"] in room_names:
             return False
