@@ -119,7 +119,7 @@ class Game:
                 self.current_room = self.rooms[next_room_name]
                 self.print_room_description()
             else:
-                print("Error: Invalid exit room ID.")
+                print(f"Error: The exit room '{next_room_name}' does not exist.")
         else:
             print(f"There's no way to go {direction}.")
 
