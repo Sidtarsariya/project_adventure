@@ -4,32 +4,26 @@
     {
       "name": "A white room",
       "desc": "You are in a simple room with white walls.",
-      "exits": { "north": "A blue room", "east": "A red room" }
+      "exits": {"north": "A blue room", "east": "A red room"},
+      "items": ["key"]
     },
     {
       "name": "A blue room",
       "desc": "This room is simple, too, but with blue walls.",
-      "exits": { "east": "A green room", "south": "A white room" }
+      "exits": {"east": "A green room", "south": "A white room"},
+      "items": ["sword"]
     },
     {
       "name": "A green room",
       "desc": "You are in a simple room, with bright green walls.",
-      "exits": { "west": "A blue room", "south": "A red room" },
-      "items": ["banana", "bandana", "bellows", "deck of cards"],
-      "locked": true,
-      "key": "key"
+      "exits": {"west": "A blue room", "south": "A red room"},
+      "items": ["shield"]
     },
     {
       "name": "A red room",
       "desc": "This room is fancy. It's red!",
-      "exits": { "north": "A green room", "west": "A white room" },
-      "items": ["rose"],
-      "win_condition": {
-        "item": "magic wand"
-      },
-      "lose_condition": {
-        "item": "sword"
-      }
+      "exits": {"north": "A green room", "west": "A white room"},
+      "items": []
     }
   ]
 }
