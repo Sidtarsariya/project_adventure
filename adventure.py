@@ -115,8 +115,11 @@ class Game:
     def go(self, direction):
         if direction in self.current_room.exits:
             next_room_name = self.current_room.exits[direction]
-            self.current_room = self.rooms[next_room_name]
-            self.print_room_description()
+            if next_room_name in self.rooms:
+                self.current_room = self.rooms[next_room_name]
+                self.print_room_description()
+            else:
+                print("Error: Invalid exit room ID.")
         else:
             print(f"There's no way to go {direction}.")
 
