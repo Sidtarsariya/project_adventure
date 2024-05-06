@@ -14,7 +14,7 @@ def load_map(filename):
         sys.stderr.write("Invalid JSON format in map file '{}'.\n".format(filename))
         sys.exit(1)
 
-# Function to check if a map is valid
+# Function to validate the map data
 def is_valid_map(map_data):
     if not all(key in map_data for key in ["start", "rooms"]):
         return False
