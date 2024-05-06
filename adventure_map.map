@@ -4,23 +4,34 @@
     {
       "name": "A white room",
       "desc": "You are in a simple room with white walls.",
-      "exits": { "north": "A blue room", "east": "A red room" },
-      "items": ["book", "candle", "key"]
+      "exits": { "north": "A blue room", "west": "A locked room" }
     },
     {
       "name": "A blue room",
       "desc": "This room is simple, too, but with blue walls.",
-      "exits": { "east": "A green room", "south": "A white room" }
+      "exits": { "south": "A white room" }
     },
     {
-      "name": "A green room",
-      "desc": "You are in a simple room, with bright green walls.",
-      "exits": { "west": "A blue room", "south": "A red room" }
+      "name": "A locked room",
+      "desc": "This room is locked. You need a key to unlock it.",
+      "exits": { "east": "A white room" },
+      "locked": true,
+      "unlock_item": "key"
     },
     {
       "name": "A red room",
       "desc": "This room is fancy. It's red!",
-      "exits": { "north": "A green room", "west": "A white room" }
+      "exits": { "north": "A green room", "west": "A white room" },
+      "items": ["sword"]
+    },
+    {
+      "name": "A green room",
+      "desc": "You are in a simple room, with bright green walls.",
+      "exits": { "south": "A red room" },
+      "win_condition": {
+        "item": "sword",
+        "message": "Congratulations! You have defeated the dragon and won the game!"
+      }
     }
   ]
 }

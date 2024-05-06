@@ -1,149 +1,139 @@
-import sys
 import json
+import sys
 
-# Function to load map data from a JSON file
-def load_map(filename):
-    try:
-        with open(filename, 'r') as file:
-            map_data = json.load(file)
-            return map_data
-    except FileNotFoundError:
-        sys.stderr.write("Map file '{}' not found.\n".format(filename))
-        sys.exit(1)
-    except json.JSONDecodeError:
-        sys.stderr.write("Invalid JSON format in map file '{}'.\n".format(filename))
-        sys.exit(1)
+class GameEngine:
+    def __init__(self, map_file):
+        self.map_file = map_file
+        self.rooms = {}
+        self.current_room = None
+        self.inventory = []
 
-# Function to validate the map data
-def is_valid_map(map_data):
-    if not all(key in map_data for key in ["start", "rooms"]):
-        return False
+    def load_map(self):
+        try:
+            with open(self.map_file, 'r') as f:
+                map_data = json.load(f)
+                start_room = map_data.get('start')
+                rooms = map_data.get('rooms')
+                if not start_room or not rooms:
+                    raise ValueError("Invalid map format: 'start' and 'rooms' keys are required.")
 
-    room_names = set()
-    for room in map_data["rooms"]:
-        if not all(key in room for key in ["name", "desc", "exits"]):
-            return False
-        if room["name"] in room_names:
-            return False
-        room_names.add(room["name"])
-        for exit_direction, exit_room in room["exits"].items():
-            if exit_direction not in ["north", "south", "east", "west"]:
-                return False
-            if exit_room not in room_names:
-                return False
-    return True
+                for room_data in rooms:
+                    room_id = room_data['name']
+                    if room_id in self.rooms:
+                        raise ValueError(f"Duplicate room name found: {room_id}")
 
-# Function to get information about a room
-def get_room_info(room_id, map_data):
-    for room in map_data["rooms"]:
-        if room["name"] == room_id:
-            return room
-    return None
+                    exits = room_data.get('exits', {})
+                    for exit_dir, exit_room in exits.items():
+                        if exit_room not in map_data:
+                            raise ValueError(f"Invalid exit room '{exit_room}' in room '{room_id}'")
+                    
+                    self.rooms[room_id] = room_data
 
-# Function to print information about a room
-def print_room_info(room_info):
-    print("> " + room_info["name"])
-    print(room_info["desc"])
-    if "items" in room_info:
-        print("Items:", ", ".join(room_info["items"]))
-    print("Exits:", ", ".join(room_info["exits"]))
-    print("What would you like to do?")
+                self.current_room = self.rooms[start_room]
+        except FileNotFoundError:
+            print("Error: Map file not found.", file=sys.stderr)
+            sys.exit(1)
+        except json.JSONDecodeError:
+            print("Error: Invalid JSON format in map file.", file=sys.stderr)
+            sys.exit(1)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
 
-# Function to handle the "go" verb
-def go(direction, game_state, map_data):
-    current_room = game_state["current_room"]
-    room_info = get_room_info(current_room, map_data)
-    if "exits" in room_info and direction in room_info["exits"]:
-        game_state["current_room"] = room_info["exits"][direction]
-        room_info = get_room_info(game_state["current_room"], map_data)
-        print_room_info(room_info)
-    else:
-        print("There's no way to go", direction + ".")
+    def play(self):
+        while True:
+            self.print_room()
+            command = input("What would you like to do? ").strip()
+            result = self.parse_command(command)
+            if result == 'quit':
+                print("Goodbye!")
+                break
 
-# Function to handle the "look" verb
-def look(game_state, map_data):
-    current_room = game_state["current_room"]
-    room_info = get_room_info(current_room, map_data)
-    print_room_info(room_info)
+    def print_room(self):
+        print(f"> {self.current_room['name']}\n")
+        print(self.current_room['desc'])
+        if 'items' in self.current_room:
+            print("\nItems:", ", ".join(self.current_room['items']))
+        print("\nExits:", ", ".join(self.current_room['exits'].keys()))
 
-# Function to handle the "get" verb
-def get_item(item, game_state, map_data):
-    current_room = game_state["current_room"]
-    room_info = get_room_info(current_room, map_data)
-    if "items" in room_info and item in room_info["items"]:
-        game_state["inventory"].append(item)
-        room_info["items"].remove(item)
-        print("You pick up the", item + ".")
-    else:
-        print("There's no", item, "anywhere.")
-
-# Function to handle the "inventory" verb
-def inventory(game_state):
-    if not game_state["inventory"]:
-        print("You're not carrying anything.")
-    else:
-        print("Inventory:")
-        for item in game_state["inventory"]:
-            print(" ", item)
-
-# Function to handle the "quit" verb
-def quit_game():
-    print("Goodbye!")
-    sys.exit(0)
-
-# Function to execute a parsed command
-def execute_command(parsed_command, game_state, map_data):
-    if len(parsed_command) == 0:
-        print("Sorry, I didn't understand that.")
-    else:
-        verb = parsed_command[0]
-        if verb == "go":
-            if len(parsed_command) == 1:
-                print("Sorry, you need to 'go' somewhere.")
-            else:
-                go(parsed_command[1], game_state, map_data)
-        elif verb == "look":
-            look(game_state, map_data)
-        elif verb == "get":
-            if len(parsed_command) == 1:
-                print("Sorry, you need to 'get' something.")
-            else:
-                get_item(parsed_command[1], game_state, map_data)
-        elif verb == "inventory":
-            inventory(game_state)
-        elif verb == "quit":
-            quit_game()
+    def parse_command(self, command):
+        command = command.strip().lower()
+        if command == 'quit':
+            return 'quit'
+        elif command == 'look':
+            self.print_room()
+        elif command.startswith('go') or command in self.current_room['exits']:
+            self.go(command[2:].strip() if command.startswith('go') else command)
+        elif command.startswith('get'):
+            self.get(command[3:].strip())
+        elif command.startswith('drop'):
+            self.drop(command[4:].strip())
+        elif command.startswith('inv'):
+            self.print_inventory()
+        elif command == 'help':
+            self.print_help()
         else:
-            print("Sorry, I didn't understand that.")
+            print("Invalid command.")
 
-# Function to parse player input
-def parse_input(player_input):
-    return player_input.strip().lower().split()
+    def go(self, direction):
+        if direction:
+            if direction in self.current_room['exits']:
+                next_room_id = self.current_room['exits'][direction]
+                next_room = self.rooms[next_room_id]
+                if 'locked' in next_room and next_room['locked']:
+                    if 'unlock_item' in next_room and next_room['unlock_item'] in self.inventory:
+                        print(f"You use {next_room['unlock_item']} to unlock the door.")
+                        next_room['locked'] = False
+                    else:
+                        print("The door is locked.")
+                else:
+                    self.current_room = next_room
+                    self.print_room()
+            else:
+                print(f"There's no way to go {direction}.")
+        else:
+            print("Sorry, you need to 'go' somewhere.")
 
-# Main game loop
-def game_loop(map_data):
-    if not is_valid_map(map_data):
-        sys.stderr.write("Invalid map!\n")
-        sys.exit(1)
+    def get(self, item):
+        if not item:
+            print("Sorry, you need to 'get' something.")
+        elif 'items' in self.current_room and item in self.current_room['items']:
+            self.inventory.append(item)
+            self.current_room['items'].remove(item)
+            print(f"You pick up the {item}.")
+        else:
+            print(f"There's no {item} anywhere.")
 
-    game_state = {
-        "current_room": map_data["start"],
-        "inventory": []
-    }
+    def drop(self, item):
+        if not item:
+            print("Sorry, you need to 'drop' something.")
+        elif item in self.inventory:
+            self.current_room['items'].append(item)
+            self.inventory.remove(item)
+            print(f"You drop the {item}.")
+        else:
+            print(f"You don't have {item} in your inventory.")
 
-    room_info = get_room_info(game_state["current_room"], map_data)
-    print_room_info(room_info)
+    def print_inventory(self):
+        if self.inventory:
+            print("Inventory:")
+            for item in self.inventory:
+                print(f"  {item}")
+        else:
+            print("You're not carrying anything.")
 
-    while True:
-        player_input = input().strip()
-        parsed_command = parse_input(player_input)
-        execute_command(parsed_command, game_state, map_data)
+    def print_help(self):
+        valid_verbs = sorted(['go', 'get', 'drop', 'look', 'inventory', 'quit', 'help'])
+        print("You can run the following commands:")
+        for verb in valid_verbs:
+            print(f"  {verb} ...")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.stderr.write("Usage: python3 adventure.py [map filename]\n")
+        print("Usage: python adventure.py <map_file>", file=sys.stderr)
         sys.exit(1)
 
-    map_filename = sys.argv[1]
-    map_data = load_map(map_filename)
-    game_loop(map_data)
+    map_file = sys.argv[1]
+    game = GameEngine(map_file)
+    game.load_map()
+    game.play()
