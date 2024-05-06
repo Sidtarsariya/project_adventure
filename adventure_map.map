@@ -21,17 +21,7 @@
     {
       "name": "A red room",
       "desc": "This room is fancy. It's red!",
-      "exits": { "north": "A green room", "west": "A white room" },
-      "items": ["sword"]
-    },
-    {
-      "name": "A green room",
-      "desc": "You are in a simple room, with bright green walls.",
-      "exits": { "south": "A red room" },
-      "win_condition": {
-        "item": "sword",
-        "message": "Congratulations! You have defeated the dragon and won the game!"
-      }
+      "exits": { "south": "A white room" }
     }
   ]
 }

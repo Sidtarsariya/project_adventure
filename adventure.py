@@ -24,7 +24,7 @@ class GameEngine:
 
                     exits = room_data.get('exits', {})
                     for exit_dir, exit_room in exits.items():
-                        if exit_room not in map_data:
+                        if exit_room not in [room['name'] for room in rooms]:
                             raise ValueError(f"Invalid exit room '{exit_room}' in room '{room_id}'")
                     
                     self.rooms[room_id] = room_data
@@ -79,21 +79,18 @@ class GameEngine:
         if direction:
             if direction in self.current_room['exits']:
                 next_room_id = self.current_room['exits'][direction]
-                if next_room_id in self.rooms:
-                    next_room = self.rooms[next_room_id]
-                    if 'locked' in next_room and next_room['locked']:
-                        if 'unlock_item' in next_room and next_room['unlock_item'] in self.inventory:
-                            print(f"You use {next_room['unlock_item']} to unlock the door.")
-                            next_room['locked'] = False
-                            self.current_room = next_room
-                            self.print_room()
-                        else:
-                            print("The door is locked.")
-                    else:
+                next_room = self.rooms[next_room_id]
+                if 'locked' in next_room and next_room['locked']:
+                    if 'unlock_item' in next_room and next_room['unlock_item'] in self.inventory:
+                        print(f"You use {next_room['unlock_item']} to unlock the door.")
+                        next_room['locked'] = False
                         self.current_room = next_room
                         self.print_room()
+                    else:
+                        print("The door is locked.")
                 else:
-                    print(f"Error: Invalid exit room '{next_room_id}' in room '{self.current_room['name']}'", file=sys.stderr)
+                    self.current_room = next_room
+                    self.print_room()
             else:
                 print(f"There's no way to go {direction}.")
         else:
